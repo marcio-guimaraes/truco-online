@@ -1,0 +1,29 @@
+.container {
+  padding: 10px;
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  min-height: 4rem;
+  align-items: center;
+}
+.container button {
+  padding: 10px 20px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.container button:hover {
+  transform: scale(1.05);
+}
+.botaoTruco {
+  background-color: #eab308; color: #1a202c;
+}
+.botaoAceitar {
+  background-color: #22c55e; color: #1a202c;
+}
+.botaoCorrer {
+  background-color: #991b1b; color: #e2e8f0;
+}

@@ -1,0 +1,14 @@
+.placarContainer {
+  background-color: #1a202c;
+  padding: 10px 20px;
+  border-radius: 8px;
+  margin: 10px auto;
+  width: fit-content;
+}
+
+.pontos {
+  display: flex;
+  gap: 30px;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
