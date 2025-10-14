@@ -102,7 +102,7 @@ function App() {
       setModo('jogador');
       setEntrouNaSala(true);
     } else {
-      alert("Por favor, preencha o seu nome!");
+      alert("Por favor, preencha o seu nome e o nome da sala!");
     }
   };
 
@@ -146,11 +146,16 @@ function App() {
               return (
                 <div key={s.nome} className="item-sala">
                   <span>{s.nome} ({s.jogadores}/4) {s.espectadores > 0 && `- 👁️ ${s.espectadores}`}</span>
-                  {estaCheia ? (
-                     <button onClick={() => handleEntrarComoEspectador(s.nome)}>Assistir</button>
-                  ) : (
-                     <button onClick={() => handleEntrarComoJogador(s.nome)}>Entrar</button>
-                  )}
+                  <div className="botoes-sala">
+                    {estaCheia ? (
+                       <button onClick={() => handleEntrarComoEspectador(s.nome)}>Assistir</button>
+                    ) : (
+                       <>
+                         <button onClick={() => handleEntrarComoJogador(s.nome)}>Entrar para Jogar</button>
+                         <button onClick={() => handleEntrarComoEspectador(s.nome)}>Assistir</button>
+                       </>
+                    )}
+                  </div>
                 </div>
               )
             })
@@ -166,12 +171,13 @@ function App() {
     );
   }
 
-  if (!sala || !socket.id || sala.jogadores.length < 4) {
+  // O restante do seu código permanece o mesmo
+  if (!sala || !socket.id || (modo === 'jogador' && sala.jogadores.length < 4)) {
     return (
       <div style={{ padding: '20px' }}>
         <h1>Truco Online</h1>
         <h2>Sala: {nomeDaSala}</h2>
-        <p>Aguardando jogadores... ({sala?.jogadores.length || 1} / 4)</p>
+        <p>Aguardando jogadores... ({sala?.jogadores.length || 0} / 4)</p>
         <h3>Jogadores na sala:</h3>
         <ul>
           {sala?.jogadores.map(j => (
@@ -191,6 +197,12 @@ function App() {
   const eu = modo === 'jogador' ? sala.jogadores.find(j => j.id === socket.id) : null;
 
   if (modo === 'espectador') {
+    if (sala.jogadores.length < 4) {
+        return <div style={{ padding: '20px' }}>
+            <h1>Assistindo a Sala: {nomeDaSala}</h1>
+            <p>Aguardando a partida começar... ({sala.jogadores.length}/4 jogadores)</p>
+        </div>
+    }
     const jogadorReferencia = sala.jogadores[0];
     if (!jogadorReferencia) return <p>Aguardando jogadores...</p>;
     const parceiro = sala.jogadores[2];
