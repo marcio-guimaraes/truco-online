@@ -1,22 +1,22 @@
 import styles from './styles.module.css';
 
 interface PlacarProps {
-  placar: Record<string, number>;
-  meuId: string;
+  placar: { vermelho: number; azul: number };
+  meuTime: 'vermelho' | 'azul';
 }
 
-export function Placar({ placar, meuId }: PlacarProps) {
-  const idsJogadores = Object.keys(placar);
-  const meuPlacar = placar[meuId];
-  const idOponente = idsJogadores.find(id => id !== meuId);
-  const placarOponente = idOponente ? placar[idOponente] : 0;
+export function Placar({ placar, meuTime }: PlacarProps) {
+  const placarNos = placar[meuTime];
+  const placarEles = meuTime === 'vermelho' ? placar.azul : placar.vermelho;
+  const corNos = meuTime === 'vermelho' ? styles.timeVermelho : styles.timeAzul;
+  const corEles = meuTime === 'vermelho' ? styles.timeAzul : styles.timeVermelho;
 
   return (
     <div className={styles.placarContainer}>
       <h2>Placar</h2>
       <div className={styles.pontos}>
-        <span>Você: {meuPlacar}</span>
-        <span>Oponente: {placarOponente}</span>
+        <span className={corNos}>Nós: {placarNos}</span>
+        <span className={corEles}>Eles: {placarEles}</span>
       </div>
     </div>
   );

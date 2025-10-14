@@ -1,21 +1,28 @@
 import { Carta, type CartaInfo } from '../Carta';
-import styles from './styles.module.css';
+
+interface Jogador {
+  id: string;
+  nome: string;
+}
 
 interface MesaProps {
   cartasNaMesa: { jogadorId: string, carta: CartaInfo }[];
+  jogadores: Jogador[];
 }
 
-export function Mesa({ cartasNaMesa }: MesaProps) {
+export function Mesa({ cartasNaMesa, jogadores }: MesaProps) {
   return (
-    <div className={styles.mesaContainer}>
-      <h3>Mesa</h3>
-      <div className={styles.cartasNaMesa}>
-        {cartasNaMesa.map(({ jogadorId, carta }) => (
-          <div key={jogadorId}>
-            <Carta cartaInfo={carta} onCartaClick={() => {}} />
-            <p className={styles.nomeJogador}>Jogada por: {jogadorId.substring(0, 5)}...</p>
-          </div>
-        ))}
+    <div className="mesaContainer">
+      <div className="cartasNaMesa">
+        {cartasNaMesa.map(({ jogadorId, carta }) => {
+          const jogador = jogadores.find(j => j.id === jogadorId);
+          return (
+            <div key={jogadorId}>
+              <Carta cartaInfo={carta} onCartaClick={() => {}} />
+              <p className="nomeJogador">{jogador?.nome}</p>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

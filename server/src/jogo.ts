@@ -1,5 +1,3 @@
-// server/src/jogo.ts
-
 import type { Carta } from './baralho';
 
 const forcaCartasComuns: Record<string, number> = {
@@ -12,17 +10,18 @@ const forcaCartasComuns: Record<string, number> = {
 };
 
 const manilhas: Carta[] = [
-  { valor: '7', naipe: 'ouros' },
-  { valor: 'A', naipe: 'espadas' },
-  { valor: '7', naipe: 'copas' },
   { valor: '4', naipe: 'paus' },
+  { valor: '7', naipe: 'copas' },
+  { valor: 'A', naipe: 'espadas' },
+  { valor: '7', naipe: 'ouros' },
+  { valor: '4', naipe: 'ouros' },
 ];
 
 export function getForca(carta: Carta): number {
-  const forcaManilha = manilhas.findIndex(m => m.valor === carta.valor && m.naipe === carta.naipe);
+  const indexManilha = manilhas.findIndex(m => m.valor === carta.valor && m.naipe === carta.naipe);
   
-  if (forcaManilha !== -1) {
-    return forcaManilha + 10;
+  if (indexManilha !== -1) {
+    return 15 - indexManilha;
   }
   
   return forcaCartasComuns[carta.valor] || 0;

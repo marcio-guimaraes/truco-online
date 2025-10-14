@@ -12,3 +12,11 @@
   font-size: 1.2rem;
   font-weight: bold;
 }
+
+.pontos span {
+  padding: 5px 10px;
+  border-radius: 5px;
+}
+
+.timeVermelho { background-color: #c53030; }
+.timeAzul { background-color: #3182ce; }
