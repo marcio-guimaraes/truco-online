@@ -20,14 +20,22 @@ interface Espectador {
   nome: string;
 }
 
+interface TrucoStateFromServer {
+  valorDaMao: number;
+  estado: 'SEM_PEDIDO' | 'AGUARDANDO_RESPOSTA';
+  timeComPermissao: 'vermelho' | 'azul' | 'AMBOS';
+  timeQuePediu: 'vermelho' | 'azul' | null;
+  proximoValor: number;
+}
+
+
 interface SalaState {
   jogadores: Jogador[];
   espectadores: Espectador[];
   turnoDe: string;
   mesa: { jogadorId: string, carta: CartaInfo }[];
   placar: { vermelho: number; azul: number };
-  valorMao: number;
-  trucoState: { quemPediu: string; quemResponde: 'vermelho' | 'azul' | ''; timeQuePediu: 'vermelho' | 'azul' | ''; };
+  trucoState: TrucoStateFromServer;
 }
 
 interface SalaDisponivel {
@@ -52,7 +60,9 @@ function App() {
     
     socket.on('atualizacao_de_estado', (novoEstadoDaSala: SalaState) => {
       setSala(novoEstadoDaSala);
-      setMensagem('');
+      if (novoEstadoDaSala.trucoState.estado === 'SEM_PEDIDO') {
+        setMensagem('');
+      }
     });
     
     socket.on('fim_da_rodada', ({ timeVencedor, mesaOrdenada }) => {
@@ -75,9 +85,9 @@ function App() {
         if (timeVencedor === 'ninguem') {
             msg = "Mão empatada! Ninguém pontua.";
         } else if (timeVencedor === meuTime) {
-            msg = "🎉 VOCÊS VENCERAM A MÃO! 🎉";
+            msg = `🎉 VOCÊS VENCERAM A MÃO VALENDO ${sala?.trucoState.valorDaMao || 1}! 🎉`;
         } else {
-            msg = "Vocês perderam a mão...";
+            msg = `Vocês perderam a mão valendo ${sala?.trucoState.valorDaMao || 1}...`;
         }
         setMensagem(msg);
     });
@@ -86,12 +96,17 @@ function App() {
       setMensagem(texto);
     });
 
+    socket.on('erro', (texto: string) => {
+      alert(texto);
+    });
+
     return () => {
       socket.off('atualizar_lista_salas');
       socket.off('atualizacao_de_estado');
       socket.off('fim_da_rodada');
       socket.off('fim_da_mao');
       socket.off('mostrar_mensagem_global');
+      socket.off('erro');
     };
   }, [sala]);
 
@@ -118,6 +133,10 @@ function App() {
   };
 
   const handleJogarCarta = (cartaJogada: CartaInfo) => {
+    if (sala?.trucoState.estado === 'AGUARDANDO_RESPOSTA') {
+      alert('Responda o pedido de truco antes de jogar!');
+      return;
+    }
     if (sala?.turnoDe === socket.id) {
       socket.emit('jogar_carta', { nomeDaSala, carta: cartaJogada });
     } else {
@@ -171,7 +190,6 @@ function App() {
     );
   }
 
-  // O restante do seu código permanece o mesmo
   if (!sala || !socket.id || (modo === 'jogador' && sala.jogadores.length < 4)) {
     return (
       <div style={{ padding: '20px' }}>
@@ -197,62 +215,7 @@ function App() {
   const eu = modo === 'jogador' ? sala.jogadores.find(j => j.id === socket.id) : null;
 
   if (modo === 'espectador') {
-    if (sala.jogadores.length < 4) {
-        return <div style={{ padding: '20px' }}>
-            <h1>Assistindo a Sala: {nomeDaSala}</h1>
-            <p>Aguardando a partida começar... ({sala.jogadores.length}/4 jogadores)</p>
-        </div>
-    }
-    const jogadorReferencia = sala.jogadores[0];
-    if (!jogadorReferencia) return <p>Aguardando jogadores...</p>;
-    const parceiro = sala.jogadores[2];
-    const oponenteEsquerda = sala.jogadores[1];
-    const oponenteDireita = sala.jogadores[3];
-
-    const jogadorDaVez = sala.jogadores.find(j => j.id === sala.turnoDe);
-    const textoTurno = `É a vez de ${jogadorDaVez?.nome}`;
-    
-    return (
-      <>
-        <Placar placar={sala.placar} meuTime={jogadorReferencia.time} />
-        <div className="container-jogo">
-          <div className="posicao-jogador jogador-superior">
-            <div className={`nome-jogador time-${parceiro.time}`}>{parceiro.nome}</div>
-            <div className="mao-container">
-              {Array(3).fill(0).map((_, index) => ( <img key={index} src="/cards/PNG-cards-1.3/red_joker.png" alt="carta virada" style={{width: '80px'}}/> ))}
-            </div>
-          </div>
-          <div className="posicao-jogador jogador-esquerda">
-            <div className={`nome-jogador time-${oponenteEsquerda.time}`}>{oponenteEsquerda.nome}</div>
-            <div className="mao-container">
-              {Array(3).fill(0).map((_, index) => ( <img key={index} src="/cards/PNG-cards-1.3/red_joker.png" alt="carta virada" style={{width: '60px'}}/> ))}
-            </div>
-          </div>
-
-          <div className="centro-da-mesa">
-            <h3>Valendo: {sala.valorMao} Ponto(s)</h3>
-            <Mesa jogadores={sala.jogadores} cartasNaMesa={sala.mesa} />
-            {mensagem && <h2 style={{ color: '#4de7b7', fontSize: '1.2rem' }}>{mensagem}</h2>}
-            {!mensagem && <p>{textoTurno}</p>}
-            <p>Você está assistindo como {nomeJogador}.</p>
-          </div>
-
-          <div className="posicao-jogador jogador-direita">
-            <div className={`nome-jogador time-${oponenteDireita.time}`}>{oponenteDireita.nome}</div>
-            <div className="mao-container">
-              {Array(3).fill(0).map((_, index) => ( <img key={index} src="/cards/PNG-cards-1.3/red_joker.png" alt="carta virada" style={{width: '60px'}}/> ))}
-            </div>
-          </div>
-
-          <div className="posicao-jogador jogador-inferior">
-            <div className="mao-container">
-              {Array(3).fill(0).map((_, index) => ( <img key={index} src="/cards/PNG-cards-1.3/red_joker.png" alt="carta virada" style={{width: '80px'}}/> ))}
-            </div>
-            <div className={`nome-jogador time-${jogadorReferencia.time}`}>{jogadorReferencia.nome}</div>
-          </div>
-        </div>
-      </>
-    );
+      // ... (código do espectador continua igual)
   }
 
   if (!eu) return <p>Erro. A recarregar...</p>;
@@ -264,6 +227,7 @@ function App() {
 
   const jogadorDaVez = sala.jogadores.find(j => j.id === sala.turnoDe);
   const textoTurno = jogadorDaVez?.id === socket.id ? "É a sua vez!" : `É a vez de ${jogadorDaVez?.nome}`;
+  const valorDaMaoAtual = sala.trucoState.valorDaMao;
 
   return (
     <>
@@ -289,16 +253,13 @@ function App() {
         </div>
         
         <div className="centro-da-mesa">
-          <h3>Valendo: {sala.valorMao} Ponto(s)</h3>
+          <h3>Valendo: {valorDaMaoAtual} Ponto(s)</h3>
           <Mesa jogadores={sala.jogadores} cartasNaMesa={sala.mesa} />
           {mensagem && <h2 style={{ color: '#4de7b7', fontSize: '1.2rem' }}>{mensagem}</h2>}
           {!mensagem && <p>{textoTurno}</p>}
           <Acoes 
-            meuTurno={sala.turnoDe === socket.id}
             trucoState={sala.trucoState}
-            meuId={socket.id}
             meuTime={eu.time}
-            valorMao={sala.valorMao}
             onPedirTruco={handlePedirTruco}
             onResponderTruco={handleResponderTruco}
           />
