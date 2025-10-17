@@ -26,10 +26,11 @@ interface Sala {
   rodadasVencidas: { time: 'vermelho' | 'azul' | 'empate' }[];
   placar: { vermelho: number; azul: number };
   quemIniciouMao: string;
-  gerenciadorDeTruco: GerenciadorDeTruco; 
+  gerenciadorDeTruco: GerenciadorDeTruco;
 }
 
 const salas: Record<string, Sala> = {};
+const PONTOS_PARA_VITORIA = 12;
 
 const app = express();
 const httpServer = createServer(app);
@@ -46,7 +47,25 @@ function broadcastSalasDisponiveis() {
 
   io.emit('atualizar_lista_salas', salasInfo);
 }
+
+function verificarFimDeJogo(sala: Sala, nomeDaSala: string): boolean {
+  const { vermelho, azul } = sala.placar;
+  if (vermelho >= PONTOS_PARA_VITORIA) {
+    io.to(nomeDaSala).emit('fim_de_jogo', { timeVencedor: 'vermelho' });
+    return true;
+  }
+  if (azul >= PONTOS_PARA_VITORIA) {
+    io.to(nomeDaSala).emit('fim_de_jogo', { timeVencedor: 'azul' });
+    return true;
+  }
+  return false;
+}
+
 function iniciarNovaMao(sala: Sala, nomeDaSala: string) {
+  if (sala.placar.vermelho >= PONTOS_PARA_VITORIA || sala.placar.azul >= PONTOS_PARA_VITORIA) {
+      sala.placar = { vermelho: 0, azul: 0 };
+  }
+
   const baralho = embaralhar(criarBaralho());
   sala.jogadores.forEach((jogador, index) => {
     jogador.mao = baralho.slice(index * 3, index * 3 + 3);
@@ -71,7 +90,7 @@ function iniciarNovaMao(sala: Sala, nomeDaSala: string) {
 function broadcastEstado(nomeDaSala: string, sala: Sala) {
   const estadoCompleto = {
     ...sala,
-    trucoState: sala.gerenciadorDeTruco.getState() // Pega o estado atual do truco
+    trucoState: sala.gerenciadorDeTruco.getState()
   };
 
   sala.jogadores.forEach(jogador => {
@@ -209,6 +228,7 @@ io.on('connection', (socket) => {
       if (vencedorMao) {
         if (vencedorMao !== 'ninguem') {
           sala.placar[vencedorMao] += sala.gerenciadorDeTruco.getValorDaMao();
+          if (verificarFimDeJogo(sala, nomeDaSala)) return;
         }
         io.to(nomeDaSala).emit('fim_da_mao', { timeVencedor: vencedorMao });
         setTimeout(() => iniciarNovaMao(sala, nomeDaSala), 3000);
@@ -251,6 +271,9 @@ io.on('connection', (socket) => {
       if(resultado.sucesso) {
         sala.placar[resultado.timeVencedor!] += resultado.pontosGanhos!;
         io.to(nomeDaSala).emit('fim_da_mao', { timeVencedor: resultado.timeVencedor });
+        
+        if (verificarFimDeJogo(sala, nomeDaSala)) return;
+
         setTimeout(() => iniciarNovaMao(sala, nomeDaSala), 2000);
         return;
       }
@@ -267,8 +290,36 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('jogar_novamente', ({ nomeDaSala }) => {
+    const sala = salas[nomeDaSala];
+    if (sala) {
+      iniciarNovaMao(sala, nomeDaSala);
+    }
+  });
+
   socket.on('disconnect', () => {
-    // ... seu código de disconnect continua o mesmo
+    console.log(`Jogador desconectado: ${socket.id}`);
+    for (const nomeDaSala in salas) {
+      const sala = salas[nomeDaSala];
+      const jogadorIndex = sala.jogadores.findIndex(j => j.id === socket.id);
+      if (jogadorIndex !== -1) {
+        sala.jogadores.splice(jogadorIndex, 1);
+        if (sala.jogadores.length === 0) {
+          delete salas[nomeDaSala];
+        }
+        broadcastSalasDisponiveis();
+        broadcastEstado(nomeDaSala, sala);
+        break;
+      }
+
+      const espectadorIndex = sala.espectadores.findIndex(e => e.id === socket.id);
+      if (espectadorIndex !== -1) {
+        sala.espectadores.splice(espectadorIndex, 1);
+        broadcastSalasDisponiveis();
+        broadcastEstado(nomeDaSala, sala);
+        break;
+      }
+    }
   });
 });
 

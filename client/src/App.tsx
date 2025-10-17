@@ -28,7 +28,6 @@ interface TrucoStateFromServer {
   proximoValor: number;
 }
 
-
 interface SalaState {
   jogadores: Jogador[];
   espectadores: Espectador[];
@@ -52,6 +51,7 @@ function App() {
   const [sala, setSala] = useState<SalaState | null>(null);
   const [mensagem, setMensagem] = useState('');
   const [salasDisponiveis, setSalasDisponiveis] = useState<SalaDisponivel[]>([]);
+  const [vencedorDoJogo, setVencedorDoJogo] = useState<'vermelho' | 'azul' | null>(null);
   
   useEffect(() => {
     socket.on('atualizar_lista_salas', (salas: SalaDisponivel[]) => {
@@ -100,6 +100,10 @@ function App() {
       alert(texto);
     });
 
+    socket.on('fim_de_jogo', ({ timeVencedor }) => {
+      setVencedorDoJogo(timeVencedor);
+    });
+
     return () => {
       socket.off('atualizar_lista_salas');
       socket.off('atualizacao_de_estado');
@@ -107,6 +111,7 @@ function App() {
       socket.off('fim_da_mao');
       socket.off('mostrar_mensagem_global');
       socket.off('erro');
+      socket.off('fim_de_jogo');
     };
   }, [sala]);
 
@@ -148,6 +153,25 @@ function App() {
   const handleResponderTruco = (resposta: 'aceitar' | 'correr' | 'aumentar') => {
     socket.emit('responder_truco', { nomeDaSala, resposta });
   };
+
+  const handleJogarNovamente = () => {
+    setVencedorDoJogo(null);
+    socket.emit('jogar_novamente', { nomeDaSala });
+  }
+
+  if (vencedorDoJogo) {
+    const eu = sala?.jogadores.find(j => j.id === socket.id);
+    const venci = eu?.time === vencedorDoJogo;
+
+    return (
+      <div className="tela-fim-de-jogo">
+        <h1>{venci ? '🎉 VITÓRIA! 🎉' : 'Derrota'}</h1>
+        <p>O time {vencedorDoJogo === 'vermelho' ? 'Vermelho' : 'Azul'} venceu a partida!</p>
+        <button onClick={handleJogarNovamente}>Jogar Novamente</button>
+        <button onClick={() => window.location.reload()}>Voltar para o Lobby</button>
+      </div>
+    )
+  }
 
   if (!entrouNaSala) {
     return (
@@ -215,7 +239,62 @@ function App() {
   const eu = modo === 'jogador' ? sala.jogadores.find(j => j.id === socket.id) : null;
 
   if (modo === 'espectador') {
-      // ... (código do espectador continua igual)
+    if (sala.jogadores.length < 4) {
+        return <div style={{ padding: '20px' }}>
+            <h1>Assistindo a Sala: {nomeDaSala}</h1>
+            <p>Aguardando a partida começar... ({sala.jogadores.length}/4 jogadores)</p>
+        </div>
+    }
+    const jogadorReferencia = sala.jogadores[0];
+    if (!jogadorReferencia) return <p>Aguardando jogadores...</p>;
+    const parceiro = sala.jogadores[2];
+    const oponenteEsquerda = sala.jogadores[1];
+    const oponenteDireita = sala.jogadores[3];
+
+    const jogadorDaVez = sala.jogadores.find(j => j.id === sala.turnoDe);
+    const textoTurno = `É a vez de ${jogadorDaVez?.nome}`;
+    
+    return (
+      <>
+        <Placar placar={sala.placar} meuTime={jogadorReferencia.time} />
+        <div className="container-jogo">
+          <div className="posicao-jogador jogador-superior">
+            <div className={`nome-jogador time-${parceiro.time}`}>{parceiro.nome}</div>
+            <div className="mao-container">
+              {Array(3).fill(0).map((_, index) => ( <img key={index} src="/cards/PNG-cards-1.3/red_joker.png" alt="carta virada" style={{width: '80px'}}/> ))}
+            </div>
+          </div>
+          <div className="posicao-jogador jogador-esquerda">
+            <div className={`nome-jogador time-${oponenteEsquerda.time}`}>{oponenteEsquerda.nome}</div>
+            <div className="mao-container">
+              {Array(3).fill(0).map((_, index) => ( <img key={index} src="/cards/PNG-cards-1.3/red_joker.png" alt="carta virada" style={{width: '60px'}}/> ))}
+            </div>
+          </div>
+
+          <div className="centro-da-mesa">
+            <h3>Valendo: {sala.trucoState.valorDaMao} Ponto(s)</h3>
+            <Mesa jogadores={sala.jogadores} cartasNaMesa={sala.mesa} />
+            {mensagem && <h2 style={{ color: '#4de7b7', fontSize: '1.2rem' }}>{mensagem}</h2>}
+            {!mensagem && <p>{textoTurno}</p>}
+            <p>Você está assistindo como {nomeJogador}.</p>
+          </div>
+
+          <div className="posicao-jogador jogador-direita">
+            <div className={`nome-jogador time-${oponenteDireita.time}`}>{oponenteDireita.nome}</div>
+            <div className="mao-container">
+              {Array(3).fill(0).map((_, index) => ( <img key={index} src="/cards/PNG-cards-1.3/red_joker.png" alt="carta virada" style={{width: '60px'}}/> ))}
+            </div>
+          </div>
+
+          <div className="posicao-jogador jogador-inferior">
+            <div className="mao-container">
+              {Array(3).fill(0).map((_, index) => ( <img key={index} src="/cards/PNG-cards-1.3/red_joker.png" alt="carta virada" style={{width: '80px'}}/> ))}
+            </div>
+            <div className={`nome-jogador time-${jogadorReferencia.time}`}>{jogadorReferencia.nome}</div>
+          </div>
+        </div>
+      </>
+    );
   }
 
   if (!eu) return <p>Erro. A recarregar...</p>;

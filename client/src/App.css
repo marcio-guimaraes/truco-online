@@ -136,3 +136,43 @@ body {
   background-color: #4a5568;
   cursor: not-allowed;
 }
+
+.tela-fim-de-jogo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background-color: #242424;
+  color: white;
+  text-align: center;
+}
+
+.tela-fim-de-jogo h1 {
+  font-size: 4rem;
+  margin-bottom: 20px;
+}
+
+.tela-fim-de-jogo p {
+  font-size: 1.5rem;
+  margin-bottom: 40px;
+}
+
+.tela-fim-de-jogo button {
+  font-size: 1.2rem;
+  padding: 10px 20px;
+  margin: 10px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+
+.tela-fim-de-jogo button:first-of-type {
+  background-color: #1a1a1a;
+  border-color: #646cff;
+}
+.tela-fim-de-jogo button:first-of-type:hover {
+  border-color: #535bf2;
+}
