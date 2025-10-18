@@ -35,7 +35,10 @@ const PONTOS_PARA_VITORIA = 12;
 const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
-  cors: { origin: "http://localhost:5173", methods: ["GET", "POST"] }
+  cors: { 
+    origin: process.env.CLIENT_URL || "http://localhost:5173", 
+    methods: ["GET", "POST"] 
+  }
 });
 
 function broadcastSalasDisponiveis() {
@@ -330,5 +333,5 @@ io.on('connection', (socket) => {
   });
 });
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 httpServer.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));

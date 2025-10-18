@@ -6,7 +6,7 @@ import { Placar } from './components/Placar';
 import { Acoes } from './components/Acoes';
 import './App.css';
 
-const socket = io('http://localhost:3000');
+const socket = io(import.meta.env.VITE_SERVER_URL || 'http://localhost:3000');
 
 interface Jogador {
   id: string;
