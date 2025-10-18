@@ -174,70 +174,77 @@ io.on('connection', (socket) => {
     const proximoJogadorIndexNaOrdem = (jogadorAtualIndexNaOrdem + 1) % sala.jogadores.length;
     sala.turnoDe = sala.ordemDeJogo[proximoJogadorIndexNaOrdem];
 
+    // MUDANÇA: Lógica alterada aqui
     if (sala.mesa.length < sala.jogadores.length) {
       broadcastEstado(nomeDaSala, sala);
       return;
     }
 
-    const mesaComForca = sala.mesa.map(jogada => {
-      const jogadorDaJogada = sala.jogadores.find(j => j.id === jogada.jogadorId);
-      return { ...jogada, forca: getForca(jogada.carta), time: jogadorDaJogada!.time };
-    });
-    mesaComForca.sort((a, b) => b.forca - a.forca);
+    // Se for o quarto jogador, primeiro envia o estado com a carta na mesa
+    broadcastEstado(nomeDaSala, sala);
     
-    const melhorJogada = mesaComForca[0];
-    const segundaMelhorJogada = mesaComForca[1];
-    let timeVencedorRodada: 'vermelho' | 'azul' | 'empate';
-
-    if (melhorJogada.forca > segundaMelhorJogada.forca) {
-      timeVencedorRodada = melhorJogada.time;
-    } else {
-      timeVencedorRodada = 'empate';
-    }
-
-    sala.rodadasVencidas.push({ time: timeVencedorRodada });
-    io.to(nomeDaSala).emit('fim_da_rodada', { timeVencedor: timeVencedorRodada, mesaOrdenada: mesaComForca });
-
-    let vencedorMao: 'vermelho' | 'azul' | 'ninguem' | null = null;
-    const vitoriasVermelho = sala.rodadasVencidas.filter(v => v.time === 'vermelho').length;
-    const vitoriasAzul = sala.rodadasVencidas.filter(v => v.time === 'azul').length;
-
-    if (vitoriasVermelho === 2) vencedorMao = 'vermelho';
-    if (vitoriasAzul === 2) vencedorMao = 'azul';
-
-    if (!vencedorMao) {
-      const r1 = sala.rodadasVencidas[0]?.time;
-      const r2 = sala.rodadasVencidas[1]?.time;
-      
-      if (r1 === 'empate') {
-        if (r2 === 'vermelho') vencedorMao = 'vermelho';
-        if (r2 === 'azul') vencedorMao = 'azul';
-      }
-      if (r2 === 'empate') {
-        if (r1 === 'vermelho') vencedorMao = 'vermelho';
-        if (r1 === 'azul') vencedorMao = 'azul';
-      }
-      if (sala.rodadasVencidas.length === 3) {
-        const r3 = sala.rodadasVencidas[2].time;
-        if(r1 === 'empate' && r2 === 'empate' && r3 !== 'empate') vencedorMao = r3;
-        if(r1 === 'empate' && r2 === 'empate' && r3 === 'empate') vencedorMao = 'ninguem';
-      }
-    }
-
+    // E então, após uma pequena pausa, calcula e anuncia o vencedor da rodada
     setTimeout(() => {
-      if (vencedorMao) {
-        if (vencedorMao !== 'ninguem') {
-          sala.placar[vencedorMao] += sala.gerenciadorDeTruco.getValorDaMao();
-          if (verificarFimDeJogo(sala, nomeDaSala)) return;
-        }
-        io.to(nomeDaSala).emit('fim_da_mao', { timeVencedor: vencedorMao });
-        setTimeout(() => iniciarNovaMao(sala, nomeDaSala), 3000);
+      const mesaComForca = sala.mesa.map(jogada => {
+        const jogadorDaJogada = sala.jogadores.find(j => j.id === jogada.jogadorId);
+        return { ...jogada, forca: getForca(jogada.carta), time: jogadorDaJogada!.time };
+      });
+      mesaComForca.sort((a, b) => b.forca - a.forca);
+      
+      const melhorJogada = mesaComForca[0];
+      const segundaMelhorJogada = mesaComForca[1];
+      let timeVencedorRodada: 'vermelho' | 'azul' | 'empate';
+
+      if (melhorJogada.forca > segundaMelhorJogada.forca) {
+        timeVencedorRodada = melhorJogada.time;
       } else {
-        sala.mesa = [];
-        sala.turnoDe = melhorJogada.jogadorId;
-        broadcastEstado(nomeDaSala, sala);
+        timeVencedorRodada = 'empate';
       }
-    }, 3000);
+
+      sala.rodadasVencidas.push({ time: timeVencedorRodada });
+      io.to(nomeDaSala).emit('fim_da_rodada', { timeVencedor: timeVencedorRodada, mesaOrdenada: mesaComForca });
+
+      let vencedorMao: 'vermelho' | 'azul' | 'ninguem' | null = null;
+      const vitoriasVermelho = sala.rodadasVencidas.filter(v => v.time === 'vermelho').length;
+      const vitoriasAzul = sala.rodadasVencidas.filter(v => v.time === 'azul').length;
+
+      if (vitoriasVermelho === 2) vencedorMao = 'vermelho';
+      if (vitoriasAzul === 2) vencedorMao = 'azul';
+
+      if (!vencedorMao) {
+        const r1 = sala.rodadasVencidas[0]?.time;
+        const r2 = sala.rodadasVencidas[1]?.time;
+        
+        if (r1 === 'empate') {
+          if (r2 === 'vermelho') vencedorMao = 'vermelho';
+          if (r2 === 'azul') vencedorMao = 'azul';
+        }
+        if (r2 === 'empate') {
+          if (r1 === 'vermelho') vencedorMao = 'vermelho';
+          if (r1 === 'azul') vencedorMao = 'azul';
+        }
+        if (sala.rodadasVencidas.length === 3) {
+          const r3 = sala.rodadasVencidas[2].time;
+          if(r1 === 'empate' && r2 === 'empate' && r3 !== 'empate') vencedorMao = r3;
+          if(r1 === 'empate' && r2 === 'empate' && r3 === 'empate') vencedorMao = 'ninguem';
+        }
+      }
+
+      setTimeout(() => {
+        if (vencedorMao) {
+          if (vencedorMao !== 'ninguem') {
+            sala.placar[vencedorMao] += sala.gerenciadorDeTruco.getValorDaMao();
+            if (verificarFimDeJogo(sala, nomeDaSala)) return;
+          }
+          io.to(nomeDaSala).emit('fim_da_mao', { timeVencedor: vencedorMao });
+          setTimeout(() => iniciarNovaMao(sala, nomeDaSala), 3000);
+        } else {
+          sala.mesa = [];
+          sala.turnoDe = melhorJogada.jogadorId;
+          broadcastEstado(nomeDaSala, sala);
+        }
+      }, 3000);
+    }, 1500); // Pausa de 1.5s para que todos vejam a última carta
   });
 
   socket.on('pedir_truco', ({ nomeDaSala }) => {

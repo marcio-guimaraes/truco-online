@@ -70,7 +70,16 @@ body {
   .jogador-superior { grid-area: 1 / 2 / 2 / 3; }
   .jogador-esquerda { grid-area: 2 / 1 / 3 / 2; }
   .jogador-direita { grid-area: 2 / 3 / 3 / 4; }
-  .centro-da-mesa { grid-area: 2 / 2 / 3 / 3; order: 0; }
+  
+  /* MUDANÇA AQUI 👇 */
+  .centro-da-mesa { 
+    grid-area: 2 / 2 / 3 / 3; 
+    order: 0;
+    /* Adicione estas 3 linhas para centralizar o conteúdo */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
 
   .posicao-jogador {
     display: flex;

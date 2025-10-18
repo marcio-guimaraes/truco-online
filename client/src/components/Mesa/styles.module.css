@@ -1,23 +1,38 @@
-.mesaContainer {
-  border: 2px solid #4a5568;
-  border-radius: 10px;
-  padding: 20px;
-  margin: 20px 0;
-  min-height: 250px;
-  background-color: #2d3748;
-}
-
-.cartasNaMesa {
-  display: flex;
-  gap: 20px;
-  justify-content: center;
+.container {
+  width: 220px;
+  height: 280px;
+  position: relative;
+  display: grid;
+  grid-template-areas:
+    ". superior ."
+    "esquerda . direita"
+    ". inferior .";
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr 1fr;
   align-items: center;
-  margin-top: 10px;
+  justify-items: center;
 }
 
-.nomeJogador {
-  font-size: 0.8rem;
-  color: #a0aec0;
-  text-align: center;
-  margin-top: 5px;
+.cartaNaMesa {
+  position: absolute; 
+}
+
+.inferior {
+  grid-area: inferior;
+  transform: translateY(20px);
+}
+
+.esquerda {
+  grid-area: esquerda;
+  transform: translateX(-30px) rotate(-90deg);
+}
+
+.superior {
+  grid-area: superior;
+  transform: translateY(-20px) rotate(180deg);
+}
+
+.direita {
+  grid-area: direita;
+  transform: translateX(30px) rotate(90deg);
 }
